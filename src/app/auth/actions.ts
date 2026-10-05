@@ -3,14 +3,15 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
-export async function signInWithEmail(_: unknown, form: FormData) {
-  const email = String(form.get("email") ?? "").trim();
-  if (!email.includes("@")) return { error: "Enter a valid email address." };
+/** Email + password sign-in. No emails sent, so no rate limits. */
+export async function passwordLogin(_: unknown, form: FormData) {
+  const email = String(form.get("email") ?? "").trim().toLowerCase();
+  const password = String(form.get("password") ?? "");
+  if (!email.includes("@") || !password) return { error: "Enter your email and password." };
   const supabase = await createClient();
-  const origin = (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL;
-  const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${origin}/auth/callback` } });
-  if (error) return { error: error.message };
-  return { sent: email };
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return { error: "Email or password is incorrect." };
+  redirect("/dashboard");
 }
 
 export async function signInWithGoogle() {
